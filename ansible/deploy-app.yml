@@ -1,0 +1,101 @@
+---
+# ============================================================
+# TaskFlow - Ansible Playbook: Deploy App to Kubernetes
+# Run: ansible-playbook -i inventory.ini deploy-app.yml
+#      -e "dockerhub_username=YOUR_USERNAME"
+# ============================================================
+
+- name: Deploy TaskFlow Application to Kubernetes
+  hosts: master
+  become: no
+  vars:
+    dockerhub_username: "{{ dockerhub_username | default('YOUR_DOCKERHUB_USERNAME') }}"
+    app_namespace: "taskflow"
+    k8s_dir: "/home/ubuntu/taskflow-k8s"
+
+  tasks:
+    - name: Create directory for k8s manifests on master
+      file:
+        path: "{{ k8s_dir }}"
+        state: directory
+
+    - name: Copy Kubernetes manifests to master
+      copy:
+        src: "{{ item }}"
+        dest: "{{ k8s_dir }}/"
+      with_fileglob:
+        - "../k8s/*.yaml"
+
+    - name: Replace Docker Hub username placeholder in manifests
+      replace:
+        path: "{{ k8s_dir }}/{{ item }}"
+        regexp: 'YOUR_DOCKERHUB_USERNAME'
+        replace: "{{ dockerhub_username }}"
+      loop:
+        - auth-service.yaml
+        - task-service.yaml
+        - frontend.yaml
+
+    - name: Apply namespace
+      shell: kubectl apply -f {{ k8s_dir }}/namespace.yaml
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+    - name: Apply ConfigMap and Secrets
+      shell: kubectl apply -f {{ k8s_dir }}/configmap-secret.yaml
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+    - name: Apply PostgreSQL StatefulSet
+      shell: kubectl apply -f {{ k8s_dir }}/postgres.yaml
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+    - name: Wait for PostgreSQL to be ready
+      shell: kubectl rollout status statefulset/postgres -n taskflow --timeout=120s
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+    - name: Apply Auth Service
+      shell: kubectl apply -f {{ k8s_dir }}/auth-service.yaml
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+    - name: Apply Task Service
+      shell: kubectl apply -f {{ k8s_dir }}/task-service.yaml
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+    - name: Apply Frontend
+      shell: kubectl apply -f {{ k8s_dir }}/frontend.yaml
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+
+    - name: Wait for all deployments to be ready
+      shell: kubectl rollout status deployment/{{ item }} -n taskflow --timeout=180s
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+      loop:
+        - auth-service
+        - task-service
+        - frontend
+
+    - name: Get all running pods
+      shell: kubectl get pods -n taskflow -o wide
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+      register: pods_output
+
+    - name: Print pod status
+      debug:
+        var: pods_output.stdout_lines
+
+    - name: Get services
+      shell: kubectl get svc -n taskflow
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+      register: svc_output
+
+    - name: Print service info
+      debug:
+        var: svc_output.stdout_lines

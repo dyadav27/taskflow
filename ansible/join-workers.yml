@@ -1,0 +1,46 @@
+---
+# ============================================================
+# TaskFlow - Join Worker Nodes (FIXED VERSION)
+# ============================================================
+
+- name: Join Worker Nodes to Kubernetes Cluster
+  hosts: workers
+  become: yes
+
+  tasks:
+
+    - name: Copy kubeadm join command from controller to workers
+      copy:
+        src: /tmp/kubeadm_join_command.sh
+        dest: /tmp/kubeadm_join_command.sh
+        mode: '0755'
+
+    - name: Join worker node to cluster
+      shell: bash /tmp/kubeadm_join_command.sh
+      args:
+        creates: /etc/kubernetes/kubelet.conf
+
+    - name: Print success message
+      debug:
+        msg: "Worker {{ inventory_hostname }} successfully joined the cluster"
+
+
+- name: Verify cluster from master
+  hosts: master
+  become: no
+
+  tasks:
+
+    - name: Wait for nodes to register
+      pause:
+        seconds: 20
+
+    - name: Get cluster nodes
+      shell: kubectl get nodes -o wide
+      environment:
+        KUBECONFIG: /home/ubuntu/.kube/config
+      register: nodes_output
+
+    - name: Show cluster nodes
+      debug:
+        var: nodes_output.stdout_lines

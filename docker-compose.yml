@@ -1,0 +1,120 @@
+
+# ============================================================
+# TaskFlow - Local Development Docker Compose
+# Runs all 4 services: postgres, auth, task, frontend
+# ============================================================
+
+networks:
+  taskflow-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+
+services:
+
+  # ── PostgreSQL Database ──────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    container_name: taskflow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taskflow
+      POSTGRES_USER: taskflow_user
+      POSTGRES_PASSWORD: taskflow_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - taskflow-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskflow_user -d taskflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Auth Microservice ────────────────────────────────────
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: taskflow-auth
+    restart: unless-stopped
+    environment:
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: taskflow_user
+      DB_PASSWORD: taskflow_pass
+      JWT_SECRET: taskflow_dev_secret_change_in_prod_123
+      JWT_EXPIRES_IN: 7d
+    ports:
+      - "3001:3001"
+    networks:
+      - taskflow-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── Task Microservice ────────────────────────────────────
+  task-service:
+    build:
+      context: ./task-service
+      dockerfile: Dockerfile
+    container_name: taskflow-tasks
+    restart: unless-stopped
+    environment:
+      PORT: 3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: taskflow
+      DB_USER: taskflow_user
+      DB_PASSWORD: taskflow_pass
+      AUTH_SERVICE_URL: http://auth-service:3001
+    ports:
+      - "3002:3002"
+    networks:
+      - taskflow-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3002/health || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── Frontend (React + Nginx API Gateway) ─────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: taskflow-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - taskflow-net
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      task-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s

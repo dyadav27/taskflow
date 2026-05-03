@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files — NEVER commit these
+.env
+**/.env
+*.env.local
+
+# Build output
+**/build/
+**/dist/
+frontend/build/
+
+# Terraform state — contains sensitive info
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/tfplan
+terraform/.terraform.lock.hcl
+
+# Kubernetes secrets if generated locally
+k8s/configmap-secret.yaml
+
+# SSH keys
+*.pem
+*.rsa
+id_rsa
+id_rsa.pub
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+**/coverage/
+*.lcov
+
+# Ansible retry files
+ansible/*.retry
+
+# kubeconfig (sensitive)
+kubeconfig
+*.kubeconfig
+/tmp/kubeadm_join_command.sh
