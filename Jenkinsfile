@@ -10,8 +10,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                url: 'https://github.com/dyadav27/taskflow.git'
+                checkout scm
             }
         }
 
