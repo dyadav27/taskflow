@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: dyadav27/taskflow-auth:latest
+          image: hulala27/taskflow-auth:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3001

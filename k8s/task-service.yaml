@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: task-service
-          image: dyadav27/taskflow-tasks:latest
+          image: hulala27/taskflow-tasks:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3002

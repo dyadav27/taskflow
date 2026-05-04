@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: dyadav27/taskflow-frontend:latest
+          image: hulala27/taskflow-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
