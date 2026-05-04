@@ -25,8 +25,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          # IMPORTANT: Replace hulala27 with your Docker Hub username
-          image: hulala27/taskflow-auth:latest
+          image: dyadav27/taskflow-auth:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3001

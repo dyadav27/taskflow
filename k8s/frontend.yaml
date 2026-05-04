@@ -25,8 +25,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          # IMPORTANT: Replace hulala27 with your Docker Hub username
-          image: hulala27/taskflow-frontend:latest
+          image: dyadav27/taskflow-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80

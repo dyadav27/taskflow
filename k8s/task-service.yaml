@@ -25,8 +25,7 @@ spec:
     spec:
       containers:
         - name: task-service
-          # IMPORTANT: Replace hulala27 with your Docker Hub username
-          image: hulala27/taskflow-tasks:latest
+          image: dyadav27/taskflow-tasks:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3002
