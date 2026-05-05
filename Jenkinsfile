@@ -117,7 +117,6 @@ pipeline {
                     kubectl apply -f k8s/namespace.yaml
 
                     # Apply all manifests (ConfigMap/Secrets FIRST, then services)
-                    kubectl apply -f k8s/configmap-secret.yaml
                     kubectl apply -f k8s/postgres.yaml
                     kubectl apply -f k8s/auth-service.yaml
                     kubectl apply -f k8s/task-service.yaml
