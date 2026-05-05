@@ -110,44 +110,34 @@ pipeline {
         // ─────────────────────────────────────────────
         // 5.  Deploy to Kubernetes
         // ─────────────────────────────────────────────
-        stage('Deploy to Kubernetes') {
+    stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([string(
-                    credentialsId: 'kubeconfig',
-                    variable: 'KUBECONFIG_CONTENT'
-                )]) {
-                    sh '''
-                        # Write kubeconfig to a temp file so kubectl can use it
-                        mkdir -p $HOME/.kube
-                        echo "$KUBECONFIG_CONTENT" > $HOME/.kube/config
-                        chmod 600 $HOME/.kube/config
+                sh '''
+                    # Ensure namespace exists
+                    kubectl apply -f k8s/namespace.yaml
 
-                        # Ensure namespace exists
-                        kubectl apply -f k8s/namespace.yaml
+                    # Apply all manifests (ConfigMap/Secrets FIRST, then services)
+                    kubectl apply -f k8s/configmap-secret.yaml
+                    kubectl apply -f k8s/postgres.yaml
+                    kubectl apply -f k8s/auth-service.yaml
+                    kubectl apply -f k8s/task-service.yaml
+                    kubectl apply -f k8s/frontend.yaml
 
-                        # Apply all manifests (ConfigMap/Secrets FIRST, then services)
-                        kubectl apply -f k8s/configmap-secret.yaml
-                        kubectl apply -f k8s/postgres.yaml
-                        kubectl apply -f k8s/auth-service.yaml
-                        kubectl apply -f k8s/task-service.yaml
-                        kubectl apply -f k8s/frontend.yaml
+                    # Force a rolling restart so new :latest image is pulled
+                    kubectl rollout restart deployment/auth-service  -n ${KUBE_NAMESPACE}
+                    kubectl rollout restart deployment/task-service   -n ${KUBE_NAMESPACE}
+                    kubectl rollout restart deployment/frontend       -n ${KUBE_NAMESPACE}
 
-                        # Force a rolling restart so new :latest image is pulled
-                        kubectl rollout restart deployment/auth-service  -n ${KUBE_NAMESPACE}
-                        kubectl rollout restart deployment/task-service   -n ${KUBE_NAMESPACE}
-                        kubectl rollout restart deployment/frontend       -n ${KUBE_NAMESPACE}
+                    # Wait for rollouts to complete (fail fast if something breaks)
+                    kubectl rollout status deployment/auth-service  -n ${KUBE_NAMESPACE} --timeout=120s
+                    kubectl rollout status deployment/task-service  -n ${KUBE_NAMESPACE} --timeout=120s
+                    kubectl rollout status deployment/frontend      -n ${KUBE_NAMESPACE} --timeout=120s
 
-                        # Wait for rollouts to complete (fail fast if something breaks)
-                        kubectl rollout status deployment/auth-service  -n ${KUBE_NAMESPACE} --timeout=120s
-                        kubectl rollout status deployment/task-service  -n ${KUBE_NAMESPACE} --timeout=120s
-                        kubectl rollout status deployment/frontend      -n ${KUBE_NAMESPACE} --timeout=120s
-
-                        echo "==============================="
-                        echo " Deployment complete!"
-                        echo " Build: ${IMAGE_TAG}"
-                        echo "==============================="
-                    '''
-                }
+                    echo "==============================="
+                    echo " Deployment complete!"
+                    echo " Build: ${IMAGE_TAG}"
+                    echo "==============================="
+                '''
             }
         }
     }
