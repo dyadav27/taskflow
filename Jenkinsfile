@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    triggers {
+        githubPush()   // fire this pipeline on every GitHub push webhook
+    }
+
     environment {
         DOCKERHUB_USERNAME = "hulala27"           // DockerHub account
         IMAGE_TAG = "build-${BUILD_NUMBER}"   // unique tag per build; also tagged :latest
