@@ -164,7 +164,7 @@ export default function DashboardPage() {
           <div className="header-greeting">
             <span className="greeting-emoji">👋</span>
             <div>
-              <h2 className="dashboard-title">Welcome to TaskFlow Live, {firstName}! 🚀</h2>
+              <h2 className="dashboard-title">Welcome to TaskFlow {firstName}! 🚀</h2>
               <p className="dashboard-subtitle">Here's your highly available task overview for today! 🌩️</p>
             </div>
           </div>
